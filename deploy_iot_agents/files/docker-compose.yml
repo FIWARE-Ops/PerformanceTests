@@ -1,0 +1,44 @@
+version: "3.2"
+
+services:
+    agent:
+        depends_on:
+            - mosquitto
+            - orion
+        image: fiware/iotagent-json:latest
+        networks:
+            - iot 
+        restart: unless-stopped
+        volumes:
+            - "/opt/tests/iot-agents/folder/agent.js:/opt/iotajson/config.js"
+        ports:
+            - "4061:4061"
+            - "7896:7896"
+
+    mongo:
+        image: mongo:3.6
+        restart: unless-stopped
+        networks:
+            - iot
+
+    mosquitto:
+        image: eclipse-mosquitto:1.5
+        networks:
+            - iot 
+        ports:
+            - "1883:1883"
+        restart: unless-stopped
+        volumes:
+            - "/opt/tests/iot-agents/folder/mosquitto.conf:/mosquitto/config/mosquitto.conf"
+
+    orion:
+        command: -dbhost mongo -logLevel ERROR
+        image: fiware/orion:2.2.0
+        networks:
+            - iot 
+        restart: unless-stopped
+        ports:
+            - "1026:1026"
+networks:
+    iot:
+        external: true
