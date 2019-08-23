@@ -9,12 +9,12 @@
       shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
 
     - name: pull mock1 server
-      shell: docker pull fiware/echo:{{ mock_version }}
+      shell: docker pull {{ mock_image }}:{{ mock_version }}
 
     - name: deploy mock1 server
       docker_container:
         command: --workers {{ mock_workers_ct }}
-        image: fiware/echo:{{ mock_version }}
+        image: {{ mock_image }}:{{ mock_version }}
         name: mock
         network_mode: host
         state: started
@@ -30,12 +30,12 @@
       shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
 
     - name: pull mock2 server
-      shell: docker pull fiware/echo:{{ mock_version }}
+      shell: docker pull {{ mock_image }}:{{ mock_version }}
 
     - name: deploy mock2 server
       docker_container:
         command: --workers {{ mock_workers_ct }}
-        image: fiware/echo:{{ mock_version }}
+        image: {{ mock_image }}:{{ mock_version }}
         name: mock
         network_mode: host
         state: started
@@ -52,13 +52,13 @@
       when: mock_workers | int >= 6
 
     - name: pull mock3 server
-      shell: docker pull fiware/echo:{{ mock_version }}
+      shell: docker pull {{ mock_image }}:{{ mock_version }}
       when: mock_workers | int >= 3
 
     - name: deploy mock3 server
       docker_container:
         command: --workers {{ mock_workers_ct }}
-        image: fiware/echo:{{ mock_version }}
+        image: {{ mock_image }}:{{ mock_version }}
         name: mock
         network_mode: host
         state: started
@@ -76,13 +76,13 @@
       when: mock_workers | int >= 4
 
     - name: pull mock4 server
-      shell: docker pull fiware/echo:{{ mock_version }}
+      shell: docker pull {{ mock_image }}:{{ mock_version }}
       when: mock_workers | int >= 4
 
     - name: deploy mock4 server
       docker_container:
         command: --workers {{ mock_workers_ct }}
-        image: fiware/echo:{{ mock_version }}
+        image: {{ mock_image }}:{{ mock_version }}
         name: mock
         network_mode: host
         state: started
@@ -100,13 +100,13 @@
       when: mock_workers | int >= 5
 
     - name: pull mock5 server
-      shell: docker pull fiware/echo:{{ mock_version }}
+      shell: docker pull {{ mock_image }}:{{ mock_version }}
       when: mock_workers | int >= 5
 
     - name: deploy mock5 server
       docker_container:
         command: --workers {{ mock_workers_ct }}
-        image: fiware/echo:{{ mock_version }}
+        image: {{ mock_image }}:{{ mock_version }}
         name: mock
         network_mode: host
         state: started
@@ -124,13 +124,13 @@
       when: mock_workers | int >= 6
 
     - name: pull mock6 server
-      shell: docker pull fiware/echo:{{ mock_version }}
+      shell: docker pull {{ mock_image }}:{{ mock_version }}
       when: mock_workers | int >= 6
 
     - name: deploy mock6 server
       docker_container:
         command: --workers {{ mock_workers_ct }}
-        image: fiware/echo:{{ mock_version }}
+        image: {{ mock_image }}:{{ mock_version }}
         name: mock
         network_mode: host
         state: started

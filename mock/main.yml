@@ -87,7 +87,7 @@
   - name: deploy mock server
     docker_container:
       name: mock
-      image: fiware/echo:orion
+      image: {{ mock_image }}:{{ mock_version }}
       command: --workers {{ mock_workers_ct }}
       state: started
       network_mode: host

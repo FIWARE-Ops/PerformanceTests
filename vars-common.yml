@@ -4,6 +4,7 @@ orion_version: 1.10.0
 orionld_version: latest
 mock_version: orion
 agent_image: fiware/iotagent-json
+mock_image: fiware/service.mock
 nginx_image: nginx:1.17.0-alpine
 haproxy_image: haproxy:2.0.1-alpine
 agent_provisioning_port: 4096
