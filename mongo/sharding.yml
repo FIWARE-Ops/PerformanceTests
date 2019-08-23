@@ -1,0 +1,115 @@
+  - name: print mongo status
+    debug: msg="Deploying mongo in sharding mode"
+
+  - name: clean node cluster
+    delegate_to: '{{ item }}'
+    shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+    with_items:
+      - "{{ groups['node_cluster'] }}"
+
+  - name: clean temp folder
+    connection: local
+    file:
+      path: /tmp/mongo
+      state: '{{ item }}'
+    with_items:
+      - absent
+      - directory
+
+  - name: prepare mongo templates
+    connection: local
+    template:
+      src: '{{ item }}'
+      dest: /tmp/mongo/
+    with_fileglob:
+      - "sharding/*.*"
+
+  - name: synchronize mongo files
+    become: true
+    synchronize:
+      src: '/tmp/mongo/'
+      dest: /opt/mongo/
+      recursive: yes
+      delete: yes
+
+  - name: deploy mongo config servers
+    delegate_to: '{{ item }}'
+    docker_container:
+      command: mongod --port {{ mongo_port }} --wiredTigerCacheSizeGB 6 --wiredTigerCollectionBlockCompressor snappy --configsvr --replSet configserver --noprealloc --smallfiles --oplogSize 16 --bind_ip_all
+      image: mongo:{{ mongo_version }}
+      name: mongo
+      network_mode: host
+    with_items:
+      - "{{ groups['mongo_config_hosts'] }}"
+
+  - name: deploy mongo shard1 servers
+    delegate_to: '{{ item }}'
+    docker_container:
+      command: mongod --port {{ mongo_port }} --wiredTigerCacheSizeGB 6 --wiredTigerCollectionBlockCompressor snappy --shardsvr --replSet shard1 --noprealloc --smallfiles --oplogSize 16 --bind_ip_all
+      image: mongo:{{ mongo_version }}
+      name: mongo
+      network_mode: host
+    with_items:
+      - "{{ groups['mongo_shard1_hosts'] }}"
+
+  - name: deploy mongo shard2 servers
+    delegate_to: '{{ item }}'
+    docker_container:
+      command: mongod --port {{ mongo_port }} --wiredTigerCacheSizeGB 6 --wiredTigerCollectionBlockCompressor snappy --shardsvr --replSet shard2 --noprealloc --smallfiles --oplogSize 16 --bind_ip_all
+      image: mongo:{{ mongo_version }}
+      name: mongo
+      network_mode: host
+    with_items:
+      - "{{ groups['mongo_shard2_hosts'] }}"
+
+  - name: deploy mongo router
+    docker_container:
+      command: mongos --port {{ mongo_port }}  --configdb configserver/{{ hostvars['node1']['internal'] }}:{{ mongo_port }},{{ hostvars['node2']['internal'] }}:{{ mongo_port }} --bind_ip_all
+      image: mongo:{{ mongo_version }}
+      name: mongo
+      network_mode: host
+
+  - name: execute mongo init scripts
+    shell: docker run -it --rm \
+                      -v $(pwd):/scripts/ \
+                      caa06d9c/support:mongo \
+                      sh -c 'mongo --host {{ hostvars[ item ]['internal'] }}:{{ mongo_port }} < /scripts/{{ item }}.js'
+    args:
+        chdir: /opt/mongo/
+    with_items:
+      - node1
+      - node3
+      - node5
+
+  - name: check mongo clusters
+    shell: docker run -it --rm caa06d9c/support:mongo mongo \
+                      --host {{ hostvars[ item ]['internal'] }}:{{ mongo_port }} \
+                      --eval "rs.status();" | grep -c stateStr
+    register: test
+    until: test.stdout.find('2') != -1
+    delay: 2
+    retries: 7
+    with_items:
+      - node1
+      - node3
+      - node5
+
+  - name: execute mongo init scripts
+    shell: docker run -it --rm \
+                      -v $(pwd):/scripts/ \
+                      caa06d9c/support:mongo \
+                      sh -c 'mongo --host {{ hostvars[ 'mongo' ]['internal'] }}:{{ mongo_port }} < /scripts/mongo.js'
+    args:
+        chdir: /opt/mongo/
+
+  - name: check mongo service
+    shell: docker run -it --rm caa06d9c/support:mongo mongo \
+                      --host {{ hostvars[ 'mongo' ]['internal'] }}:{{ mongo_port }} \
+                      --eval "sh.status();" | grep -c {{ item }}
+    register: test
+    until: test.stdout.find('1') != -1
+    delay: 2
+    retries: 5
+    with_items:
+      - 'shard1'
+      - 'shard2'

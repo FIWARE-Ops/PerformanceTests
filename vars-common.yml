@@ -1,0 +1,31 @@
+agent_version: 1.10.0
+mongo_version: 3.6
+orion_version: 1.10.0
+orionld_version: latest
+mock_version: orion
+agent_image: fiware/iotagent-json
+nginx_image: nginx:1.17.0-alpine
+haproxy_image: haproxy:2.0.1-alpine
+agent_provisioning_port: 4096
+agent_south_port: 7896
+mock_port: 1026
+mongo_port: 27017
+mosquitto_port: 1883
+orion_port: 1026
+rabbitmq_port: 5672
+service: service
+default_mock_workers: 1
+default_mock_workers_ct: 4
+default_agent_workers: 1
+default_duration: 120
+default_proxy: nginx
+default_threads: 300
+default_ramp_up: 30
+
+# carload/iot-agent
+# cluster_index
+# cluster
+# devices-index
+#
+# fiware/iotagent-json
+# 1.10.0

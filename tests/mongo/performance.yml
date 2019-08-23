@@ -1,0 +1,15 @@
+  - name: inform
+    debug: msg='Performance test started'
+
+  - name: start test
+    shell: docker run -t --rm --name test \
+                      -v $(pwd)/:/jmeter \
+                      egaillardon/jmeter:latest \
+                      -n -t test.jmx || true
+    args:
+        chdir: /opt/test/
+    register: result
+  
+  - name: print result
+    shell: echo "true"
+    with_items: "{{ result.stdout }}"

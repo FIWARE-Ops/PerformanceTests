@@ -1,0 +1,28 @@
+  - name: inform
+    debug: msg='Performance test started'
+
+  - name: start test
+    shell: docker run -t --rm --name test \
+                      -v $(pwd)/:/jmeter \
+                      egaillardon/jmeter:latest \
+                      -n -t test.jmx || true
+    args:
+        chdir: /opt/test/
+    register: result
+  
+  - name: print result
+    shell: echo "true"
+    with_items: "{{ result.stdout }}"
+
+  - name: get result file name
+    shell: ls | grep dat
+    args:
+        chdir: /opt/test/
+    register: result_file
+
+  - name: copy result
+    fetch:
+      src: "/opt/test/{{ item }}"
+      dest: '{{ playbook_dir }}/results/mock/performance/'
+      flat: yes
+    with_items: "{{ result_file.stdout_lines }}"

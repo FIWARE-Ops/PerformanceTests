@@ -1,0 +1,50 @@
+  - name: set threads
+    set_fact:
+      threads: "{{ default_threads }}"
+    when: threads is not defined
+
+  - name: set duration
+    set_fact:
+      duration: "{{ default_duration }}"
+    when: duration is not defined
+
+  - name: set rump_up
+    set_fact:
+      ramp_up: "{{ default_ramp_up }}"
+    when: ramp_up is not defined
+
+  - name: inform
+    debug:
+      msg:
+        - "duration set to {{ duration }}"
+        - "threads set to {{ threads }}"
+
+  - name: clean test folder
+    become: true
+    file:
+      path: /tmp/test
+      state: '{{ item }}'
+      owner: ubuntu
+      group: ubuntu
+    with_items:
+      - absent
+      - directory
+
+  - name: prepare test templates
+    connection: local
+    template:
+      src: '{{ item }}'
+      dest: /tmp/test/
+    with_fileglob:
+      - "{{ enabler }}/{{ test }}/*.*"
+
+  - name: synchronize test files
+    become: true
+    synchronize:
+      src: '/tmp/test/'
+      dest: /opt/test/
+      recursive: yes
+      delete: yes
+
+  - name: include test playbook
+    import_tasks: "{{ enabler }}/{{ test }}.yml"

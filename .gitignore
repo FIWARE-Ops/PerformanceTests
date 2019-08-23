@@ -1,2 +1,6 @@
-*.idea
+.idea
 .DS_STORE
+*.retry
+results
+hosts
+authorized_keys

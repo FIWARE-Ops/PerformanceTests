@@ -1,0 +1,22 @@
+  - name: inform
+    debug: msg='Executing functional test'
+
+  - name: start test
+    shell: docker run -t --rm --name test \
+                      -v $(pwd)/:/jmeter/ \
+                      egaillardon/jmeter:latest \
+                       -n -t test.jmx || true
+    args:
+        chdir: /opt/test/
+  
+  - name: get result file name
+    shell: ls | grep csv
+    args:
+        chdir: /opt/test
+    register: result_file
+  
+  - name: copy result
+    fetch:
+      src: /opt/test/{{ result_file.stdout }}
+      dest: '{{ playbook_dir }}/results/agent/functional/'
+      flat: yes

@@ -1,0 +1,133 @@
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - fail:
+       msg: mock_workers and sharding can't be used together
+      when: sharding is defined and mock_workers is defined  and mock_workers | int > 1
+
+    - fail:
+        msg: duration is defined
+      when: duration is defined and test != 'performance'
+
+    - fail:
+        msg: threads is defined
+      when: threads is defined and test != 'performance'
+
+- hosts: jtest
+  gather_facts: false
+  become: false
+  vars:
+    type: 'cloud'
+  vars_files:
+    - vars-cloud.yml
+    - vars-common.yml
+  tasks:
+  - name: clean test host
+    shell: docker rm -vf $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+    when: type == 'cloud'
+
+- hosts: mock
+  gather_facts: false
+  become: false
+  vars:
+    type: 'cloud'
+  vars_files:
+    - vars-cloud.yml
+    - vars-common.yml
+  tasks:
+  - name: include mock playbook
+    tags:
+      - always
+    import_tasks: mock/main.yml
+    when: enabler =='agent' or enabler=='mock'
+
+- hosts: mosquitto
+  gather_facts: false
+  become: false
+  vars:
+    type: 'cloud'
+  vars_files:
+    - vars-cloud.yml
+    - vars-common.yml
+  tasks:
+  - name: include mosquitto playbook
+    tags:
+      - always
+    import_tasks: mosquitto/main.yml
+    when: enabler =='agent'
+
+- hosts: rabbitmq
+  gather_facts: false
+  become: false
+  vars:
+    type: 'cloud'
+  vars_files:
+    - vars-cloud.yml
+    - vars-common.yml
+  tasks:
+  - name: include rabbitmq playbook
+    tags:
+      - always
+    import_tasks: rabbitmq/main.yml
+    when: enabler =='agent'
+
+- hosts: mongo
+  gather_facts: false
+  become: false
+  vars:
+    type: 'cloud'
+  vars_files:
+    - vars-cloud.yml
+    - vars-common.yml
+  tasks:
+  - name: include mongo playbook
+    tags:
+      - always
+    import_tasks: mongo/main.yml
+    when: enabler != 'mock'
+
+- hosts: mock
+  gather_facts: false
+  become: false
+  vars:
+    type: 'cloud'
+  vars_files:
+    - vars-cloud.yml
+    - vars-common.yml
+  tasks:
+  - name: include orion playbook
+    tags:
+      - always
+    import_tasks: orion/main.yml
+    when: enabler == 'orion'
+
+- hosts: agent
+  gather_facts: false
+  become: false
+  vars:
+    type: 'cloud'
+  vars_files:
+    - vars-cloud.yml
+    - vars-common.yml
+  tasks:
+  - name: include agent playbook
+    tags:
+      - always
+    import_tasks: agent/main.yml
+    when: enabler == 'agent' and test != 'unit' and test != 'clinic'
+
+- hosts: jtest
+  gather_facts: false
+  become: false
+  vars:
+    type: 'cloud'
+  vars_files:
+    - vars-cloud.yml
+    - vars-common.yml
+  tasks:
+  - name: include test playbook
+    tags:
+      - always
+    import_tasks: "tests/main.yml"

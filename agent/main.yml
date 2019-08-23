@@ -1,0 +1,94 @@
+  - name: check agent_workers and sharding
+    set_fact:
+      agent_workers: "{{ default_agent_workers }}"
+    when: sharding is defined or agent_workers is not defined
+
+  - name: set proxy
+    set_fact:
+      proxy: '{{ default_proxy }}'
+    when: proxy is not defined
+
+  - name: inform
+    debug:
+        msg: "Starting agent with {{ agent_workers }} worker(s)"
+
+  - name: clean agent host
+    shell: docker rm -fv $(docker ps -aq) 2>/dev/null ||true && docker volume prune -f
+    when: type == 'cloud'
+
+  - name: clean agent temp folder
+    connection: local
+    file:
+      path: /tmp/agent
+      state: '{{ item }}'
+    with_items:
+      - absent
+      - directory
+
+  - name: prepare agent templates
+    connection: local
+    template:
+      src: '{{ item }}'
+      dest: /tmp/agent/
+    with_fileglob:
+      - "files/*.*"
+
+  - name: synchronize agent files
+    become: true
+    synchronize:
+      src: '/tmp/agent/'
+      dest: /opt/agent/
+      recursive: yes
+      delete: yes
+
+  - name: clean agent log folder
+    become: true
+    file:
+      path: /opt/logs/
+      state: '{{ item }}'
+      mode: 0777
+    with_items:
+      - absent
+      - directory
+
+  - name: deploy agent in scaled mode
+    delegate_to: localhost
+    shell: ansible-playbook -e agent_workers={{ agent_workers }} {{ playbook_dir }}/agent/scaled.yml
+    when: agent_workers | int > 1
+
+  - name: deploy agent load balancer
+    docker_container:
+      name: agent
+      image: "{{ nginx_image }}"
+      state: started
+      network_mode: host
+      volumes:
+        - "/opt/agent/nginx.conf:/etc/nginx/nginx.conf"
+        - "/opt/logs/:/var/log/nginx/"
+    when: agent_workers | int > 1 and proxy == 'nginx'
+
+  - name: deploy agent load balancer
+    docker_container:
+      name: agent
+      image: "{{ haproxy_image }}"
+      state: started
+      network_mode: host
+      volumes:
+        - "/opt/agent/:/usr/local/etc/haproxy/"
+    when: agent_workers | int > 1 and proxy == 'haproxy'
+
+  - name: deploy agent server
+    docker_container:
+      name: agent
+      image: "{{ agent_image }}:{{ agent_version }}"
+      network_mode: host
+      volumes:
+        - "/opt/agent/config.js:/opt/iotajson/config.js"
+    when: agent_workers | int == 1
+
+  - name: check agent server
+    shell: curl http://{{ agent_endpoint }}:{{ agent_provisioning_port }}/iot/about
+    register: test
+    until:  test.stdout.find('version') != -1
+    retries: 5
+    delay: 2

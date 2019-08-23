@@ -1,0 +1,53 @@
+- hosts: install
+  gather_facts: true
+  become: true
+  tasks:
+  - name: basic first
+    tags:
+      - sysctl
+    import_tasks: docker-basic.yml
+
+  - name: get docker gpg key
+    apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+
+  - name: add docker apt repo
+    apt_repository:
+      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+      state: present
+
+  - name: install docker via apt
+    apt:
+      name: "docker-ce"
+      update_cache: yes
+
+  - name: install software via pip
+    pip:
+      name: ["docker",
+             "docker-compose"]
+      executable: pip
+
+  - name: copy systemd unit
+    copy:
+      src: docker/docker.service
+      dest: /etc/systemd/system/docker.service
+      force: yes
+      owner: root
+      group: root
+      mode: 644
+
+  - name: exec restart
+    systemd:
+      name: docker.service
+      state: restarted
+      enabled: true
+      daemon_reload: yes
+
+  - name: add users to docker group
+    user:
+      name: '{{ item }}'
+      groups: docker
+      append: yes
+    with_items:
+      - ubuntu

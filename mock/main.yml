@@ -1,0 +1,101 @@
+  - name: set mock_workers_ct
+    set_fact:
+      mock_workers_ct: "{{ default_mock_workers_ct }}"
+    when: mock_workers_ct is not defined
+
+  - name: check mock_workers and sharding
+    set_fact:
+      mock_workers: "{{ default_mock_workers }}"
+    when: sharding is defined or mock_workers is not defined
+
+  - name: set proxy
+    set_fact:
+      proxy: '{{ default_proxy }}'
+    when: proxy is not defined
+
+  - name: inform
+    debug:
+      msg: "Starting mock with {{ mock_workers }} worker(s) ({{ mock_workers_ct }} processes) and {{ proxy }} proxy"
+
+  - name: clean mock host
+    shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+
+  - name: clean mock temp folder
+    connection: local
+    file:
+      path: /tmp/mock
+      state: '{{ item }}'
+    with_items:
+      - absent
+      - directory
+    when: mock_workers | int > 1
+
+  - name: prepare mock templates
+    connection: local
+    template:
+      src: '{{ item }}'
+      dest: /tmp/mock/
+    with_fileglob:
+      - "files/*.*"
+    when: mock_workers | int > 1
+
+  - name: synchronize mock files
+    become: true
+    synchronize:
+      src: '/tmp/mock/'
+      dest: /opt/mock/
+      recursive: yes
+      delete: yes
+    when: mock_workers | int > 1
+
+  - name: clean mock log folder
+    become: true
+    file:
+      path: /opt/logs/
+      state: '{{ item }}'
+      mode: 0777
+    with_items:
+      - absent
+      - directory
+
+  - name: deploy mock in scaled mode
+    delegate_to: localhost
+    shell: ansible-playbook -e mock_workers={{ mock_workers }} -e mock_workers_ct={{ mock_workers_ct }} {{ playbook_dir }}/mock/scaled.yml
+    when: mock_workers | int > 1
+
+  - name: deploy mock load balancer
+    docker_container:
+      name: mock
+      image: "{{ nginx_image }}"
+      state: started
+      network_mode: host
+      volumes:
+        - "/opt/mock/nginx.conf:/etc/nginx/nginx.conf"
+        - "/opt/logs/:/var/log/nginx/"
+    when: mock_workers | int > 1 and proxy == 'nginx'
+
+  - name: deploy mock load balancer
+    docker_container:
+      name: mock
+      image: "{{ haproxy_image }}"
+      state: started
+      network_mode: host
+      volumes:
+        - "/opt/mock/:/usr/local/etc/haproxy/"
+    when: mock_workers | int > 1 and proxy == 'haproxy'
+
+  - name: deploy mock server
+    docker_container:
+      name: mock
+      image: fiware/echo:orion
+      command: --workers {{ mock_workers_ct }}
+      state: started
+      network_mode: host
+    when: mock_workers | int == 1
+
+  - name: check mock server
+    shell: curl http://{{ mock_endpoint }}:{{ mock_port }}/version
+    register: test
+    until: "'version' not in test != -1"
+    retries: 5
+    delay: 2

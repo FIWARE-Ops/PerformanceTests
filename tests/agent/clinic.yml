@@ -1,0 +1,51 @@
+  - name: detect test
+    set_fact:
+        clinic: 'doctor'
+    when: clinic is not defined
+
+  - name: create result doctor folder
+    become: true
+    file:
+      path: /opt/test/result/
+      state: '{{ item }}'
+      owner: ubuntu
+      group: ubuntu
+    with_items:
+      - absent
+      - directory
+
+  - name: fix permissions
+    become: true
+    file:
+      path: /opt/test/run.sh
+      mode: 0755
+
+  - name: inform
+    debug: msg='Executing clinic test'
+
+  - name: start test
+    shell: docker run -it --rm --name test \
+                      --user root --entrypoint /test/run.sh \
+                      -e clinic={{ clinic }}
+                      -v $(pwd)/config.js:/opt/iotajson/config.js \
+                      -v $(pwd)/:/test \
+                      fiware/iotagent-json:{{ agent_version }}
+    args:
+        chdir: /opt/test/
+
+  - name: create result folder
+    delegate_to: localhost
+    file:
+      path: '{{ playbook_dir }}/results/agent/clinic/{{ clinic }}'
+      state: '{{ item }}'
+    with_items:
+      - absent
+      - directory
+
+  - name: synchronize
+    synchronize:
+      src: /opt/test/result/
+      dest: '{{ playbook_dir }}/results/agent/clinic/{{ clinic }}/'
+      recursive: yes
+      delete: yes
+      mode: 'pull'

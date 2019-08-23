@@ -1,0 +1,167 @@
+- hosts: node6
+  gather_facts: false
+  become: false
+  vars_files:
+    - ../vars-cloud.yml
+    - ../vars-common.yml
+  tasks:
+    - name: clean node6
+      shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+
+    - name: synchronize agent6 files
+      become: true
+      synchronize:
+        src: '/tmp/agent/'
+        dest: /opt/agent/
+        recursive: yes
+        delete: yes
+
+    - name: deploy agent6 server
+      docker_container:
+        name: agent
+        image: "{{ agent_image }}:{{ agent_version }}"
+        network_mode: host
+        volumes:
+          - "/opt/agent/config.js:/opt/iotajson/config.js"
+
+- hosts: node5
+  gather_facts: false
+  become: false
+  vars_files:
+    - ../vars-cloud.yml
+    - ../vars-common.yml
+  tasks:
+    - name: clean node5
+      shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+
+    - name: synchronize agent5 files
+      become: true
+      synchronize:
+        src: '/tmp/agent/'
+        dest: /opt/agent/
+        recursive: yes
+        delete: yes
+
+    - name: deploy agent5 server
+      docker_container:
+        name: agent
+        image: "{{ agent_image }}:{{ agent_version }}"
+        network_mode: host
+        volumes:
+          - "/opt/agent/config.js:/opt/iotajson/config.js"
+
+- hosts: node4
+  gather_facts: false
+  become: false
+  vars_files:
+    - ../vars-cloud.yml
+    - ../vars-common.yml
+  tasks:
+    - name: clean node4
+      shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+      when: agent_workers | int >= 3
+
+    - name: synchronize agent4 files
+      become: true
+      synchronize:
+        src: '/tmp/agent/'
+        dest: /opt/agent/
+        recursive: yes
+        delete: yes
+      when: agent_workers | int >= 3
+
+    - name: deploy agent4 server
+      docker_container:
+        name: agent
+        image: "{{ agent_image }}:{{ agent_version }}"
+        network_mode: host
+        volumes:
+          - "/opt/agent/config.js:/opt/iotajson/config.js"
+      when: agent_workers | int >= 3
+
+- hosts: node3
+  gather_facts: false
+  become: false
+  vars_files:
+    - ../vars-cloud.yml
+    - ../vars-common.yml
+  tasks:
+    - name: clean node3
+      shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+      when: agent_workers | int >= 4
+
+    - name: synchronize files for agent3
+      become: true
+      synchronize:
+        src: '/tmp/agent/'
+        dest: /opt/agent/
+        recursive: yes
+        delete: yes
+      when: agent_workers | int >= 4
+
+    - name: deploy agent3 server
+      docker_container:
+        name: agent
+        image: "{{ agent_image }}:{{ agent_version }}"
+        network_mode: host
+        volumes:
+          - "/opt/agent/config.js:/opt/iotajson/config.js"
+      when: agent_workers | int >= 4
+
+- hosts: node2
+  gather_facts: false
+  become: false
+  vars_files:
+    - ../vars-cloud.yml
+    - ../vars-common.yml
+  tasks:
+    - name: clean node2
+      shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+      when: agent_workers | int >= 5
+
+    - name: synchronize files for agent2
+      become: true
+      synchronize:
+        src: '/tmp/agent/'
+        dest: /opt/agent/
+        recursive: yes
+        delete: yes
+      when: agent_workers | int >= 5
+
+    - name: deploy agent2 server
+      docker_container:
+        name: agent
+        image: "{{ agent_image }}:{{ agent_version }}"
+        network_mode: host
+        volumes:
+          - "/opt/agent/config.js:/opt/iotajson/config.js"
+      when: agent_workers | int >= 5
+
+- hosts: node1
+  gather_facts: false
+  become: false
+  vars_files:
+    - ../vars-cloud.yml
+    - ../vars-common.yml
+  tasks:
+    - name: clean node1
+      shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+      when: agent_workers | int >= 6
+
+    - name: synchronize files for agent1
+      become: true
+      synchronize:
+        src: '/tmp/agent/'
+        dest: /opt/agent/
+        recursive: yes
+        delete: yes
+      when: agent_workers | int >= 6
+
+    - name: deploy agent1 server
+      docker_container:
+        name: agent
+        image: "{{ agent_image }}:{{ agent_version }}"
+        network_mode: host
+        volumes:
+          - "/opt/agent/config.js:/opt/iotajson/config.js"
+      when: agent_workers | int >= 6

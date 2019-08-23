@@ -1,0 +1,45 @@
+  - name: inform
+    debug: msg='Filling in initial data'
+
+  - name: fill in initial data
+    shell: docker run -t --name fill_in \
+                      -v $(pwd)/config.json:/opt/config.json \
+                      fiware/tools:configureiotagents
+    args:
+        chdir: /opt/test/
+
+  - name: check filling
+    shell: docker logs fill_in 2>&1 | sed 's/"//g'
+    register: test
+    until: test.stdout.find('Ended') != -1
+    delay: 2
+    retries: 5
+
+  - name: inform
+    debug: msg='Executing performance test'
+
+  - name: start test
+    shell: docker run -t --rm --name test --network host \
+                      -v $(pwd)/:/jmeter \
+                      egaillardon/jmeter:latest \
+                      -n -t test.jmx || true
+    args:
+        chdir: /opt/test/
+    register: result
+
+  - name: print result
+    shell: echo "true"
+    with_items: "{{ result.stdout }}"
+
+  - name: get result file name
+    shell: ls | grep dat
+    args:
+        chdir: /opt/test/
+    register: result_file
+
+  - name: copy result
+    fetch:
+      src: "/opt/test/{{ item }}"
+      dest: '{{ playbook_dir }}/results/agent/performance/'
+      flat: yes
+    with_items: "{{ result_file.stdout_lines }}"

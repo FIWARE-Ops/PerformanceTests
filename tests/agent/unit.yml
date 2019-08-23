@@ -1,0 +1,24 @@
+  - name: inform
+    debug: msg='Executing unit test'
+
+  - name: start test
+    shell: docker run -t --rm --name test \
+                      --user root --entrypoint bash \
+                      -e NODE_ENV=dev \
+                      -v $(pwd)/config-test.js:/opt/iotajson/test/config-test.js \
+                      -v $(pwd)/config-startup.js:/opt/iotajson/test/config-startup.js \
+                      -v $(pwd)/index.js:/opt/iotajson/test/index.js \
+                      -v $(pwd)/package.json:/opt/iotajson/package.json \
+                      fiware/iotagent-json \
+                      -c "npm i && npm run-script test:http" || true
+    args:
+        chdir: /opt/test/
+    register: result
+
+  - name: inform
+    debug: msg='Preparing results'
+
+  - name: print result
+    shell: echo "true"
+    with_items: "{{ result.stdout_lines }}"
+    when: '"When" not in item and "commands" not in item and ("passing" in item or "pending" in item or "failing" in item)'

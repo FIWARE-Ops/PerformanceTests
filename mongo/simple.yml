@@ -1,0 +1,21 @@
+  - name: print mongo status
+    debug: msg="Deploying mongo in simple mode"
+
+  - name: clean mongo hosts
+    shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+    when: type == 'cloud' or enabler == 'mongo'
+
+  - name: deploy mongo service
+    docker_container:
+      command: --wiredTigerCacheSizeGB 6 --wiredTigerCollectionBlockCompressor snappy
+      image: mongo:{{ mongo_version }}
+      name: mongo
+      network_mode: host
+
+  - name: check mongo service
+    shell: docker logs mongo 2>&1 | sed 's/"//g'
+    register: test
+    until: test.stdout.find('waiting for connections') != -1
+    delay: 2
+    retries: 5
+

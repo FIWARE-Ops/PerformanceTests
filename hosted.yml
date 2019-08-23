@@ -1,0 +1,77 @@
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - fail:
+       msg: agent-workers > 1
+      when: agent_workers is defined and agent_workers | int > 1
+
+    - fail:
+        msg: mock-workers > 1
+      when: mock_workers is defined and mock_workers | int > 1
+
+    - fail:
+        msg: sharding is defined
+      when: sharding is defined
+
+    - fail:
+        msg: duration is defined
+      when: duration is defined and test != 'performance'
+
+    - fail:
+        msg: threads is defined
+      when: threads is defined and test != 'performance'
+
+- hosts: hosted
+  gather_facts: true
+  become: false
+  vars:
+    type: 'hosted'
+  vars_files:
+    - vars-hosted.yml
+    - vars-common.yml
+  tasks:
+  - name: clean test host
+    shell: docker rm -vf $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+
+  - name: include mock playbook
+    tags:
+      - always
+    import_tasks: mock/main.yml
+    when: enabler =='agent' or enabler=='mock'
+
+  - name: include mosquitto playbook
+    tags:
+      - always
+    import_tasks: mosquitto/main.yml
+    when: enabler =='agent'
+
+  - name: include rabbitmq playbook
+    tags:
+      - always
+    import_tasks: rabbitmq/main.yml
+    when: enabler =='agent'
+
+  - name: include mongo playbook
+    tags:
+      - always
+    import_tasks: mongo/main.yml
+    when: enabler != 'mock'
+
+  - name: include orion playbook
+    tags:
+      - always
+    import_tasks: orion/main.yml
+    when: enabler =='orion'
+
+  - name: include agent playbook
+    tags:
+      - always
+    import_tasks: agent/main.yml
+    when: enabler == 'agent' and test != 'unit' and test != 'clinic'
+
+  - name: include test playbook
+    tags:
+      - always
+    import_tasks: "tests/main.yml"

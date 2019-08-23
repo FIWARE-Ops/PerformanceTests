@@ -1,0 +1,24 @@
+{
+    "host": "{{ agent_endpoint }}",
+    "port": "{{ agent_provisioning_port }}",
+    "header_service": "service",
+    "header_service_path": "/",
+    "service": {
+        "apikey": "1234567890",
+        "cbroker": "http://{{ mock_endpoint }}:{{ mock_port }}",
+        "entity_type": "testType",
+        "resource": "/iot/json"
+    },
+    "device": {
+        "device_id": "test",
+        "protocol": "PDI-IoTA-UltraLight",
+        "transport": "HTTP",
+        "entity_name": "testName",
+        "entity_type": "testType",
+        "attributes": [{
+            "object_id": "c",
+            "name": "count",
+            "type": "Number"
+        }]
+    }
+}

@@ -1,0 +1,6 @@
+agent_endpoint: "{{ hostvars['hosted']['internal'] }}"
+jmeter_endpoint:  "{{ hostvars['hosted']['internal'] }}"
+mock_endpoint: "{{ hostvars['hosted']['internal'] }}"
+mongo_endpoint:  "{{ hostvars['hosted']['internal'] }}"
+mosquitto_endpoint: "{{ hostvars['hosted']['internal'] }}"
+rabbitmq_endpoint: "{{ hostvars['hosted']['internal'] }}"

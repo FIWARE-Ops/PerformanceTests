@@ -1,0 +1,11 @@
+  - name: clean mongo host
+    shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+    when: type == 'cloud'
+
+  - name:  include mongo sharding playbook
+    import_tasks: sharding.yml
+    when: sharding is defined
+
+  - name: include mongo simple playbook
+    import_tasks: simple.yml
+    when: sharding is not defined

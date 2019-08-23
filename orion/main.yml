@@ -1,0 +1,18 @@
+  - name: clean mock host
+    shell: docker rm -fv $(docker ps -aq) 2>/dev/null || true && docker volume prune -f
+    when: type == 'cloud'
+
+  - name: deploy orion server
+    docker_container:
+      name: mock
+      image: fiware/orion:{{ orion_version }}
+      command: -dbhost {{ mongo_endpoint }}:{{ mongo_port }} -logLevel ERROR
+      state: started
+      network_mode: host
+
+  - name: check orion server
+    shell: curl -v http://{{ mock_endpoint }}:{{ mock_port }}/version
+    register: test
+    until: test.stdout.find('orion') != -1
+    delay: 2
+    retries: 5

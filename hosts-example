@@ -1,0 +1,46 @@
+jtest     ansible_host= internal= ansible_user=ubuntu
+mock      ansible_host= internal= ansible_user=ubuntu
+mongo     ansible_host= internal= ansible_user=ubuntu
+mosquitto ansible_host= internal= ansible_user=ubuntu
+rabbitmq  ansible_host= internal= ansible_user=ubuntu
+agent     ansible_host= internal= ansible_user=ubuntu
+node1     ansible_host= internal= ansible_user=ubuntu
+node2     ansible_host= internal= ansible_user=ubuntu
+node3     ansible_host= internal= ansible_user=ubuntu
+node4     ansible_host= internal= ansible_user=ubuntu
+node5     ansible_host= internal= ansible_user=ubuntu
+node6     ansible_host= internal= ansible_user=ubuntu
+
+hosted     ansible_host= internal= ansible_user=ubuntu
+
+[node_cluster]
+node1
+node2
+node3
+node4
+node5
+node6
+
+[mongo_config_hosts]
+node1
+node2
+
+[mongo_shard1_hosts]
+node3
+node4
+
+[mongo_shard2_hosts]
+node5
+node6
+
+[endpoints]
+jtest
+mock
+mongo
+agent
+mosquitto
+rabbitmq
+
+[install:children]
+endpoints
+node_cluster

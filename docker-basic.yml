@@ -1,0 +1,75 @@
+---
+- name: add keys
+  copy:
+    src:  docker/authorized_keys
+    dest: /home/ubuntu/.ssh/authorized_keys
+    mode: 0400
+
+- name: prepare locale
+  shell: locale-gen en_US.UTF-8
+
+- name: set locales
+  lineinfile:
+    dest: /etc/environment
+    regexp: '{{ item }}'
+    line: "{{ item }}"
+    state: present
+  with_items:
+    - LC_ALL="en_US.UTF-8"
+    - LANG="en_US.UTF-8"
+
+- name: update ubuntu
+  apt:
+    name: "*"
+    state: latest
+    force_apt_get: yes
+
+- name: install packages ubuntu
+  apt:
+    name: ['apt-transport-https',
+           'ca-certificates',
+           'coreutils',
+           'htop',
+           'iftop',
+           'iotop',
+           'iperf',
+           'iproute2',
+           'iputils-ping',
+           'nmon',
+           'ntpdate',
+           'psmisc',
+           'python-pip',
+           'software-properties-common',
+           'sysstat',
+           'netcat',
+           'tzdata',
+           'vim']
+
+- name: update pip
+  become: true
+  shell: pip install --upgrade pip
+
+- name: set timezone
+  timezone:
+    name: UTC
+
+- name: disable irqbalance service
+  systemd:
+    name:  irqbalance.service
+    state: stopped
+    enabled: false
+    daemon_reload: yes
+
+- name: set limits
+  become: true
+  copy:
+    src:  docker/limits.conf
+    dest: /etc/security/limits.conf
+
+- name: copy sysctl
+  copy:
+    src:  docker/sysctl.conf
+    dest: /etc/sysctl.conf
+
+- name: apply sysctl
+  shell: sysctl -p
